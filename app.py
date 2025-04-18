@@ -33,7 +33,7 @@ if st.session_state.game_state:
 
     if guess:
         update_game_state(st.session_state.game_state, guess.lower())
-        st.experimental_rerun()
+        st.rerun()
 
     if game["won"]:
         duration = stop_timer(st.session_state.start_time)
