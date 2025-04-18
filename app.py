@@ -19,16 +19,16 @@ if "start_time" not in st.session_state:
 if "stats" not in st.session_state:
     st.session_state.stats = {"wins": 0, "losses": 0, "games": 0, "streak": 0}
 
-# Difficulty selection
+# Select difficulty
 difficulty = st.selectbox("Choose Difficulty", ["Easy", "Medium", "Hard"])
 
-# Start game button
+# Start button
 if st.button("🎮 Start New Game"):
     word = select_word_by_difficulty(difficulty)
     st.session_state.game_state = initialize_game(word)
     st.session_state.start_time = start_timer()
 
-# Game in progress
+# Game logic
 if st.session_state.game_state:
     game = st.session_state.game_state
     masked_word = " ".join(game["masked_word"])
@@ -37,10 +37,10 @@ if st.session_state.game_state:
     st.markdown(f"❤️ Lives Left: **{game['lives']}**")
     st.markdown(f"🔠 Guessed Letters: `{', '.join(game['guessed'])}`")
 
-    # Guess input
+    # Text input
     guess = st.text_input("Your Guess (1 letter):", max_chars=1, key="guess_input")
 
-    # Virtual keyboard (HTML + JS)
+    # Virtual keyboard
     letters = [chr(i) for i in range(97, 123)]
     buttons = ''.join([
         f'<button class="keyboard-btn" onclick="sendLetter(\'{l}\')">{l.upper()}</button>'
@@ -66,8 +66,8 @@ if st.session_state.game_state:
     <script>
     function sendLetter(letter) {{
         const input = window.parent.document.querySelector('input[type="text"]');
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-        nativeInputValueSetter.call(input, letter);
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+        setter.call(input, letter);
         input.dispatchEvent(new Event('input', {{ bubbles: true }}));
     }}
     </script>
@@ -75,7 +75,7 @@ if st.session_state.game_state:
     """
     html(keyboard_html, height=300)
 
-    # Guess handler
+    # Handle guess
     if guess:
         update_game_state(game, guess.lower())
         st.rerun()
@@ -88,7 +88,7 @@ if st.session_state.game_state:
         st.session_state.stats["wins"] += 1
         st.session_state.stats["games"] += 1
         st.session_state.stats["streak"] += 1
-        st.success(f"{random.choice(emojis_win)} You guessed the word: `{game['word']}`")
+        st.success(f"{random.choice(emojis_win)} You guessed it! Word was: `{game['word']}`")
         st.info(f"⏱️ Time played: {duration:.2f} minutes")
         st.session_state.game_state = None
 
@@ -99,7 +99,7 @@ if st.session_state.game_state:
         st.session_state.stats["losses"] += 1
         st.session_state.stats["games"] += 1
         st.session_state.stats["streak"] = 0
-        st.error(f"{random.choice(emojis_loss)} You lost! The word was: `{game['word']}`")
+        st.error(f"{random.choice(emojis_loss)} You lost! Word was: `{game['word']}`")
         st.info(f"⏱️ Time played: {duration:.2f} minutes")
         st.session_state.game_state = None
 
@@ -114,11 +114,26 @@ with st.expander("📊 View Win/Loss Dashboard"):
     st.markdown(f"🔥 **Current Streak**: {stats['streak']}")
     st.markdown(f"📈 **Win Rate**: `{win_rate:.1f}%`")
 
-    # Pie Chart
+    # Pie chart with safe fallback
+    wins = stats["wins"]
+    losses = stats["losses"]
+    data = [wins, losses]
+    labels = ["Wins", "Losses"]
+
+    if wins == 0 and losses == 0:
+        data = [1]
+        labels = ["No games yet"]
+    elif wins == 0:
+        data = [losses, 0.01]
+        labels = ["Losses", ""]
+    elif losses == 0:
+        data = [wins, 0.01]
+        labels = ["Wins", ""]
+
     fig, ax = plt.subplots()
     ax.pie(
-        [stats["wins"], stats["losses"]],
-        labels=["Wins", "Losses"],
+        data,
+        labels=labels,
         colors=["#00cc44", "#ff4d4d"],
         autopct="%1.1f%%",
         startangle=90
