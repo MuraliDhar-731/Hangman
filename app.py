@@ -19,10 +19,10 @@ if "start_time" not in st.session_state:
 if "stats" not in st.session_state:
     st.session_state.stats = {"wins": 0, "losses": 0, "games": 0, "streak": 0}
 
-# Select difficulty
+# Difficulty selector
 difficulty = st.selectbox("Choose Difficulty", ["Easy", "Medium", "Hard"])
 
-# Start button
+# Start game
 if st.button("🎮 Start New Game"):
     word = select_word_by_difficulty(difficulty)
     st.session_state.game_state = initialize_game(word)
@@ -37,7 +37,7 @@ if st.session_state.game_state:
     st.markdown(f"❤️ Lives Left: **{game['lives']}**")
     st.markdown(f"🔠 Guessed Letters: `{', '.join(game['guessed'])}`")
 
-    # Text input
+    # Guess input
     guess = st.text_input("Your Guess (1 letter):", max_chars=1, key="guess_input")
 
     # Virtual keyboard
@@ -75,7 +75,6 @@ if st.session_state.game_state:
     """
     html(keyboard_html, height=300)
 
-    # Handle guess
     if guess:
         update_game_state(game, guess.lower())
         st.rerun()
@@ -83,24 +82,24 @@ if st.session_state.game_state:
     # Win condition
     if game["won"]:
         duration = stop_timer(st.session_state.start_time)
-        emojis_win = ["🎉", "🏆", "👏", "🎯", "🥳"]
         st.balloons()
+        emojis = ["🎉", "🏆", "👏", "🎯", "🥳"]
+        st.success(f"{random.choice(emojis)} You guessed it! Word was: `{game['word']}`")
+        st.info(f"⏱️ Time played: {duration:.2f} minutes")
         st.session_state.stats["wins"] += 1
         st.session_state.stats["games"] += 1
         st.session_state.stats["streak"] += 1
-        st.success(f"{random.choice(emojis_win)} You guessed it! Word was: `{game['word']}`")
-        st.info(f"⏱️ Time played: {duration:.2f} minutes")
         st.session_state.game_state = None
 
     # Loss condition
     elif game["lost"]:
         duration = stop_timer(st.session_state.start_time)
-        emojis_loss = ["💀", "😢", "💔", "👻", "🙈"]
+        emojis = ["💀", "😢", "💔", "👻", "🙈"]
+        st.error(f"{random.choice(emojis)} You lost! Word was: `{game['word']}`")
+        st.info(f"⏱️ Time played: {duration:.2f} minutes")
         st.session_state.stats["losses"] += 1
         st.session_state.stats["games"] += 1
         st.session_state.stats["streak"] = 0
-        st.error(f"{random.choice(emojis_loss)} You lost! Word was: `{game['word']}`")
-        st.info(f"⏱️ Time played: {duration:.2f} minutes")
         st.session_state.game_state = None
 
 # 📊 Win/Loss Dashboard
@@ -114,32 +113,26 @@ with st.expander("📊 View Win/Loss Dashboard"):
     st.markdown(f"🔥 **Current Streak**: {stats['streak']}")
     st.markdown(f"📈 **Win Rate**: `{win_rate:.1f}%`")
 
-    # Pie chart with safe fallback
+    # ✅ Safe pie chart
     wins = stats["wins"]
     losses = stats["losses"]
-    data = [wins, losses]
-    labels = ["Wins", "Losses"]
 
     if wins == 0 and losses == 0:
-        data = [1]
-        labels = ["No games yet"]
-    elif wins == 0:
-        data = [losses, 0.01]
-        labels = ["Losses", ""]
-    elif losses == 0:
-        data = [wins, 0.01]
-        labels = ["Wins", ""]
+        st.info("📊 Not enough data to show pie chart yet. Play a few games!")
+    else:
+        data = [wins if wins > 0 else 0.01, losses if losses > 0 else 0.01]
+        labels = ["Wins", "Losses"]
 
-    fig, ax = plt.subplots()
-    ax.pie(
-        data,
-        labels=labels,
-        colors=["#00cc44", "#ff4d4d"],
-        autopct="%1.1f%%",
-        startangle=90
-    )
-    ax.axis("equal")
-    st.pyplot(fig)
+        fig, ax = plt.subplots()
+        ax.pie(
+            data,
+            labels=labels,
+            colors=["#00cc44", "#ff4d4d"],
+            autopct="%1.1f%%",
+            startangle=90
+        )
+        ax.axis("equal")
+        st.pyplot(fig)
 
     if st.button("🔄 Reset Stats"):
         st.session_state.stats = {"wins": 0, "losses": 0, "games": 0, "streak": 0}
